@@ -21,7 +21,7 @@ Node::Node(const Location& loc, shared_ptr<DutyDriver> driver) : loc(loc), drive
 
 shared_ptr<Node> Node::getClosestNeighbour(const Location& dest) const {
     shared_ptr<Node> best = nullptr;
-    double best_sq_distance = numeric_limits<double>::infinity();
+    double best_sq_distance = dest.getSquaredDistanceTo(getLocation());
 
     for (auto ne : neighbours) {
         double sq_distance = dest.getSquaredDistanceTo(ne->getLocation());
@@ -31,6 +31,7 @@ shared_ptr<Node> Node::getClosestNeighbour(const Location& dest) const {
         }
     }
 
+    /* Unreachable destination */    
     assert(best != nullptr);
 
     return best;
