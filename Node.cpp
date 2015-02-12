@@ -19,7 +19,7 @@ Node::Node(const Location& loc, shared_ptr<DutyDriver> driver) : loc(loc), drive
     Calendar::newEvent(new BeaconEvent(driver->scheduleRx(0), shared_ptr<Node> (this)));
 }
 
-shared_ptr<Node> &Node::getClosestNeighbour(const Location& dest) const {
+shared_ptr<Node> Node::getClosestNeighbour(const Location& dest) const {
     shared_ptr<Node> best = nullptr;
     double best_sq_distance = numeric_limits<double>::infinity();
 

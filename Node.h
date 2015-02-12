@@ -185,7 +185,7 @@ private:
     std::vector<std::shared_ptr<Node> > neighbours;
     std::map<nodeid_t, std::shared_ptr<Link> > links;
 
-    std::shared_ptr<Node> &getClosestNeighbour(const Location& dest) const;
+    std::shared_ptr<Node> getClosestNeighbour(const Location& dest) const;
 };
 
 #endif	/* NODE_H */
