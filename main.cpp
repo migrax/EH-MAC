@@ -18,7 +18,9 @@ using namespace std;
 int main(int argc, char** argv) {
     Grid d(5);
     
-    d.addNode(shared_ptr<Node> (new RINode(Location(1, 1))));
+    Node *sNode = new RINode(Location(1, 1));
+    
+    d.addNode(shared_ptr<Node> (sNode));
     d.addNode(shared_ptr<Node> (new RINode(Location(5, 5))));
     d.addNode(shared_ptr<Node> (new RINode(Location(100, 100))));
     d.addNode(shared_ptr<Node> (new RINode(Location(100, 105))));
@@ -29,7 +31,9 @@ int main(int argc, char** argv) {
     
     cerr << d << endl;
     
-    Calendar::getCalendar().run();
+    sNode->Route(Packet(1, 3, Location(3, 3)));
+    
+    Calendar::getCalendar().run(5);
     
     return 0;
 }
