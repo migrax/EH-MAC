@@ -7,4 +7,4 @@
 
 #include "Link.h"
 
-const unsigned int Link::capacity = 250; // 250 kbit/s is the current max. capacity of 802.15.4 physical layers.
+const unsigned int Link::capacity = 250000; // 250 kbit/s is the current max. capacity of 802.15.4 physical layers.
