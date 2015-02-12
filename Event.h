@@ -113,7 +113,7 @@ public:
         return rng;
     }
     
-    void run();
+    void run(Event::evtime_t finish = std::numeric_limits<Event::evtime_t>::infinity());
 
 private:
     static Calendar &calendar;

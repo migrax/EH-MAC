@@ -26,9 +26,12 @@ void Event::newEvent(const shared_ptr<Event>& ev) const {
     return Calendar::getCalendar().newEvent(ev);
 }
 
-void Calendar::run() {
+void Calendar::run(Event::evtime_t finish) {
     while (events.empty() == false) {
         auto ev = events.top();
+        if (ev->getDispatchTime() > finish)
+            break;
+
         ev->process();
 
 #ifndef NDEBUG
@@ -39,4 +42,7 @@ void Calendar::run() {
 
         events.pop();
     }
+#ifndef NDEBUG    
+    cerr << "Simulation ends at " << finish << 's' << endl;
+#endif
 }
