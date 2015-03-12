@@ -224,7 +224,7 @@ private:
         // If we have more packets to send, ask receiver to go to listening state (Simulate a unicast beacon to it)
         if (queue_size > 0) {
             // Add new event to transmit the next packet
-            Calendar::newEvent(std::make_unique<DataEvent> (getDriver().scheduleTx(now, getBackOff()), *this, neigh, links_[neigh.getId()]->getNextPacket()));
+            Calendar::newEvent(std::make_unique<DataEvent> (getDriver().scheduleTx(now, 0), *this, neigh, links_[neigh.getId()]->getNextPacket())); // No backoff as this is not a real beacon
             getDriver().setStatus(DutyDriver::status_t::LISTENING, now);
             return DutyDriver::status_t::RECEIVING;
         } else {
@@ -287,6 +287,7 @@ protected:
         }
 
         // Wait for 5 bytes after the end of the backoff period.
+        std::cerr << "Node: " << getId() << " Backoff: " << backoff << std::endl;
         return std::make_unique<BeaconEvent>((8 * 5 + backoff * 8 * Packet::getMaxPacketSize()) / Link::getCapacity() + now, *this, BeaconEvent::beacon_kind_t::BEACON_END);
     }
 
