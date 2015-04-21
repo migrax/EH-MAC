@@ -99,6 +99,7 @@ int main(int argc, char** argv) {
                 << e.getMessage() << endl;
         e.debug(cerr) << endl;
     }
+    cout << "+Total generated packets: "  << Packet::getCounter() << endl;
 
     return 0;
 }

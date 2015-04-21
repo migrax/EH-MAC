@@ -15,7 +15,7 @@
 
 class Packet {
 public:
-    using packetid_t = unsigned int ;
+    using packetid_t = unsigned int;
     
     // Caution: 0 should not ever be a valid packetId
     Packet(unsigned int src, unsigned int dst, Location dst_loc, Event::evtime_t now) : 
@@ -47,6 +47,10 @@ public:
     
     static int getMaxPacketSize() {
         return 128;
+    }
+    
+    static auto getCounter() {
+        return uniqueIdCounter_;
     }
     
 private:
