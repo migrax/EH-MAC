@@ -9,6 +9,7 @@
 
 #include "Grid.h"
 #include "Event.h"
+#include <boost/random/uniform_real_distribution.hpp>
 
 using namespace std;
 
@@ -43,9 +44,12 @@ namespace {
 
 PeriodicTrafficSource::PeriodicTrafficSource(const Grid& grid, double rate) : TrafficSource(grid), rate_(rate) {
     auto nodes = grid.countDeployedNodes();
-
+    auto dist = boost::random::uniform_real_distribution<Event::evtime_t> (0, 1./rate);
+    auto& rng = Calendar::getCalendar().getRandomGenerator();
+    
     for (unsigned i = 2; i <= nodes; i++) {// The first node does not send traffic        
-        Calendar::getCalendar().newEvent(make_unique<PeriodicTrafficSourceEvent>(*this, i, 1, getTimeToNextPacket()));
+        auto start_time = dist(rng);
+        Calendar::getCalendar().newEvent(make_unique<PeriodicTrafficSourceEvent>(*this, i, 1, start_time));
     }
 }
 
@@ -53,7 +57,7 @@ Event::evtime_t PeriodicTrafficSource::getTimeToNextPacket() const {
     return 1./rate_;
 }
 
-unique_ptr<Event> PeriodicTrafficSource::sendPacket(Node::nodeid_t src, Node::nodeid_t dst, Event::evtime_t now) const {
+unique_ptr<Event> PeriodicTrafficSource::sendPacket(Node::nodeid_t src, Node::nodeid_t dst, Event::evtime_t now) const {    
     Node& src_node = getGrid().getNodeById(src);
 
     src_node.Route(Packet(src, dst, getGrid().getNodeLocation(dst), now), now);
