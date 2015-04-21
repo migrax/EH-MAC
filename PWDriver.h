@@ -30,6 +30,10 @@ private:
     std::map<Node::nodeid_t, std::tuple<Event::evtime_t, unsigned int>> predictions;
     Event::evtime_t scheduleTxSlowPath(Event::evtime_t now, int backoff) const;
 
+    void scheduleListen(Node::nodeid_t dst, Event::evtime_t now);
+
+protected:
+
     class PseudoRNG {
         const unsigned int a_, c_, m_;
         unsigned int x_;
@@ -53,18 +57,15 @@ private:
         }
 
     } rng_;
-    
-    void scheduleListen(Node::nodeid_t dst, Event::evtime_t now);
 
-protected:
-    virtual Event::evtime_t getExpectedExactBeaconTime(Node::nodeid_t dst, Event::evtime_t now);    
+    virtual Event::evtime_t getExpectedExactBeaconTime(Node::nodeid_t dst, Event::evtime_t now);
     Event::evtime_t getTimeUntilListen();
-    
+
     Event::evtime_t getExpectedBeaconTime(Node::nodeid_t dst, Event::evtime_t now) {
         auto beacon_time = getExpectedExactBeaconTime(dst, now);
         return std::max(now, beacon_time - 10e-3); // 10ms error máx
     }
-    
+
     Event::evtime_t getPrevBeaconTime(Node::nodeid_t dst, Event::evtime_t next_beacon);
 
 public:

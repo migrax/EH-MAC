@@ -16,8 +16,9 @@
 class EnhNode;
 
 class EnhDriver : public PWDriver {
-    int m_factor_;
-    static const int base_factor_;
+    float max_beacon_rate_; // Max_rate in beacons/s
+    float beacon_rate_;
+    
     std::queue<Event::evtime_t> next_beacons;
 
     const EnhNode& getEnhNode() const;
@@ -36,18 +37,18 @@ class EnhDriver : public PWDriver {
     
 public:
 
-    EnhDriver(const EnhNode& node, Event::evtime_t bitlen);
+    EnhDriver(const EnhNode& node, Event::evtime_t bitlen, float max_rate = 10);
 
-    auto getFactor() const {
-        return m_factor_ / static_cast<float> (base_factor_);
+    auto getBeaconRate() const {
+        return beacon_rate_;
     }
 
-    auto setFactor(float new_factor, Event::evtime_t now) {
+    auto setBeaconRate(float new_rate, Event::evtime_t now) {
         if (arePendingBeacons(now)) // Only change factor after a whole normal period. This is important so senders do not desynchronize themselves and expend useless time listening
-            return m_factor_;
+            return beacon_rate_;
         
-        m_factor_ = std::max(base_factor_, static_cast<int> (roundf(new_factor * base_factor_))); // Minimum rate is base_factor_
-        return m_factor_;
+        beacon_rate_ = std::min(new_rate, max_beacon_rate_);
+        return beacon_rate_;
     }
 
     virtual Event::evtime_t scheduleRx(Event::evtime_t now) {
@@ -55,12 +56,20 @@ public:
         if (!next_beacons.empty())
             return next_beacons.front();
 
-        auto next_beat = now + getTimeUntilListen();
-        auto period_length = next_beat - now;
-        auto subinterval = period_length / static_cast<Event::evtime_t> (m_factor_);
-        for (auto i = 1; i <= m_factor_; i++) {
-            next_beacons.push(next_beat - period_length + i * subinterval);
-        }
+        const auto next_beat = now + getTimeUntilListen();
+        const auto period_length = next_beat - now;
+        const auto subinterval = 1/(1. * max_beacon_rate_);
+        /* We generate all possible beacons and then choose randomly which ones to 
+         * observe. As the random seed we employ node_id<<16 + floor(now). That is
+         * random enough and, at the same time, known by senders */
+        auto rng = PseudoRNG((getNode().getId() << 16) + static_cast<int>(floor(now)));
+        const auto threshold = getBeaconRate()/max_beacon_rate_ * rng.randMax();
+        
+        for (auto i = next_beat - period_length + subinterval; i < next_beat; i += subinterval)
+            if (rng() <= threshold)
+                next_beacons.push(i);
+        
+        next_beacons.push(next_beat); // This is the noral beacon that MUST be transmitted                
 
         return scheduleRx(now); // Now there should exist a valid beacon time
     }

@@ -27,7 +27,7 @@ public:
             total_time += sample.first;
             events += sample.second;
         }
-
+        
         return events / total_time;
     }
 

@@ -48,9 +48,9 @@ public:
         Calendar::newEvent(std::make_unique<BeaconEvent> (getDriver().scheduleRx(0), *this));
     }
 
-    auto getCurrentNeighbourFactor(Node::nodeid_t neigh_id) const {
-        auto factor_it = neighbour_factors_.find(neigh_id);
-        return factor_it != neighbour_factors_.end() ? factor_it->second : 0;
+    auto getCurrentNeighbourBeaconRate(Node::nodeid_t neigh_id) const {
+        auto rate_it = neighbour_beacon_rates_.find(neigh_id);
+        return rate_it != neighbour_beacon_rates_.end() ? rate_it->second : 1;
     }
 private:
     int n_collisions_, n_receptions_;
@@ -66,7 +66,7 @@ private:
             rate_estimator_.newSample(cycle_.getSummary(now));
             std::cout << "@" << now << " node " << getId() << " senses " << rate_estimator_.getParameter() << " pkts/s Rate (status: " << rate_estimator_.isGood() << ')' << std::endl;
             if (rate_estimator_.isGood())
-                driver_->setFactor(rate_estimator_.getParameter(), now);
+                driver_->setBeaconRate(rate_estimator_.getParameter(), now);
             cycle_ = Cycle(now);
         }
 
@@ -90,7 +90,7 @@ protected:
     }
 
     std::unique_ptr<DataEvent> getBeacon(EnhNode& orig, Event::evtime_t now, int backoff) {
-        neighbour_factors_[orig.getId()] = orig.getDriver().getFactor();
+        neighbour_beacon_rates_[orig.getId()] = orig.getDriver().getBeaconRate();
 
         return Node::getBeacon(orig, now, backoff);
     }
@@ -109,7 +109,7 @@ protected:
 
 private:
     std::unique_ptr<EnhDriver> driver_;
-    std::map<Node::nodeid_t, float> neighbour_factors_;
+    std::map<Node::nodeid_t, float> neighbour_beacon_rates_;
 };
 
 #endif	/* ENHNODE_H */

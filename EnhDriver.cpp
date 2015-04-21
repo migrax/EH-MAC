@@ -9,22 +9,16 @@
 #include "EnhNode.h"
 
 
-constexpr int EnhDriver::base_factor_ = 4;
-
 const EnhNode& EnhDriver::getEnhNode() const {
     return static_cast<const EnhNode&> (getNode());
 }
 
-EnhDriver::EnhDriver(const EnhNode& node, Event::evtime_t bitlen) : PWDriver(node, bitlen), m_factor_(base_factor_) {
-    sleep_length_ = base_factor_;
+EnhDriver::EnhDriver(const EnhNode& node, Event::evtime_t bitlen, float max_beacon_rate) : PWDriver(node, bitlen), max_beacon_rate_(max_beacon_rate), beacon_rate_(1) {  
 }
 
 Event::evtime_t EnhDriver::getExpectedExactBeaconTime(Node::nodeid_t dst, Event::evtime_t now) {     
-    auto neigh_factor = getEnhNode().getCurrentNeighbourFactor(dst) * base_factor_;
-    if (neigh_factor == 0)
-        neigh_factor = base_factor_;
-    
-    auto expected_beat = PWDriver::getExpectedExactBeaconTime(dst, now);
+    const auto neigh_beacon_rate = getEnhNode().getCurrentNeighbourBeaconRate(dst);
+    const auto expected_beat = PWDriver::getExpectedExactBeaconTime(dst, now);
     
     if (now == 0)
         return expected_beat;
@@ -37,10 +31,19 @@ Event::evtime_t EnhDriver::getExpectedExactBeaconTime(Node::nodeid_t dst, Event:
     
     assert (prev_beat < expected_beat);
     
-    auto subinterval = (expected_beat - prev_beat) / static_cast<Event::evtime_t> (neigh_factor);
+    auto rng = PseudoRNG((dst << 16) + static_cast<int>(floor(prev_beat)));
+    const auto subinterval = 1/max_beacon_rate_;
+    const auto threshold = neigh_beacon_rate/max_beacon_rate_ * rng.randMax();
+    
     auto next_beacon = prev_beat + subinterval;
-    while (next_beacon + subinterval <= now || next_beacon < now)
+    auto valid_beacon = prev_beat; // Any value < now will do
+    while (valid_beacon < now && next_beacon < expected_beat) {
+        if (rng() <= threshold)
+            valid_beacon = next_beacon;
         next_beacon += subinterval;
-
-    return next_beacon;
+    }
+    if (valid_beacon < now)
+        valid_beacon = expected_beat;
+    
+    return valid_beacon;
 }
