@@ -31,7 +31,9 @@ Event::evtime_t EnhDriver::getExpectedExactBeaconTime(Node::nodeid_t dst, Event:
     
     auto prev_beat = getPrevBeaconTime(dst, expected_beat);
     
+#ifndef NDEBUG
     std::cerr << getNode().getId() << " estimates node " << dst << " did " << prev_beat << " will do " << expected_beat << std::endl;
+#endif
     
     assert (prev_beat < expected_beat);
     
