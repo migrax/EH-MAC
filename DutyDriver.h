@@ -50,7 +50,7 @@ public:
 
     virtual void setIdlestMode(Event::evtime_t) = 0;
     
-    auto& getNode() const {
+    const Node& getNode() const {
         return node_;
     }
 
@@ -66,7 +66,7 @@ protected:
         return activeHops_.size();
     }
 
-    static const double sleep_length_;
+    static double sleep_length_;
     
 private:
     status_t curStatus;

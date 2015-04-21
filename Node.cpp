@@ -15,7 +15,7 @@ using namespace std;
 Node::nodeid_t Node::unique_id_counter_ = 0;
 
 Node::Node(const Location& loc) :
-loc_(loc), unique_id_(++unique_id_counter_), receiving_data_(0), last_packet_id_(0), n_rtx_(0), colliding_(false), pending_beacon_(false) { // 0 is not a valid PacketId number
+loc_(loc), unique_id_(++unique_id_counter_), receiving_data_(0), n_rtx_(0), colliding_(false), pending_beacon_(false) { // 0 is not a valid PacketId number
     
 }
 
@@ -56,8 +56,9 @@ void BeaconEvent::process() {
             /* Avoid obvious collissions
              * a) We are not receiving data, even if not directed to us
              * b) We are not transmitting data
+             * c) We are not transmitting a beacon (in this case the new ending beacon can come two early and end the original period 
              */
-            if (node_.receiving_data_ == 0 && node_.getDriver().getStatus() != DutyDriver::status_t::RECEIVING && node_.getDriver().getStatus() != DutyDriver::status_t::TRANSMITTING) {
+            if (node_.txingBeacon() == false && node_.receiving_data_ == 0 && node_.getDriver().getStatus() != DutyDriver::status_t::RECEIVING && node_.getDriver().getStatus() != DutyDriver::status_t::TRANSMITTING) {
                 auto endBEaconEvenet = node_.sendBeacon(getDispatchTime());
                 if (endBEaconEvenet != nullptr)
                     newEvent(move(endBEaconEvenet));

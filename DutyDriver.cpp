@@ -12,7 +12,7 @@
 
 using namespace std;
 
-const double DutyDriver::sleep_length_ = 1; // Seconds
+double DutyDriver::sleep_length_ = 1; // Seconds
 
 namespace {
 

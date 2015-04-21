@@ -23,11 +23,13 @@
  *
  */
 
+class PWNode;
+
 class PWDriver : public DutyDriver {
 private:
     std::map<Node::nodeid_t, std::tuple<Event::evtime_t, unsigned int>> predictions;
     Event::evtime_t scheduleTxSlowPath(Event::evtime_t now, int backoff) const;
-    
+
     class PseudoRNG {
         const unsigned int a_, c_, m_;
         unsigned int x_;
@@ -51,32 +53,23 @@ private:
         }
 
     } rng_;
-
-    auto getExpectedBeaconTime(Node::nodeid_t dst, Event::evtime_t now) {
-        Event::evtime_t last_beacon = 0;
-        int last_seed = dst;
-
-        if (predictions.find(dst) != predictions.end()) {
-            std::tie(last_beacon, last_seed) = predictions[dst];
-        }
-
-        auto rng = PseudoRNG(last_seed);
-        while (last_beacon < now) {
-            last_beacon += 0.5 + rng() / (1. * rng_.randMax());
-        }
-
-        predictions[dst] = std::make_tuple(last_beacon, rng.getCurrentValue());
-
-        return std::max(now, last_beacon - 10e-3); // 10ms error máx
-    }
-
-    virtual Event::evtime_t getTimeUntilListen();
+    
     void scheduleListen(Node::nodeid_t dst, Event::evtime_t now);
+
+protected:
+    virtual Event::evtime_t getExpectedExactBeaconTime(Node::nodeid_t dst, Event::evtime_t now);    
+    Event::evtime_t getTimeUntilListen();
+    
+    Event::evtime_t getExpectedBeaconTime(Node::nodeid_t dst, Event::evtime_t now) {
+        auto beacon_time = getExpectedExactBeaconTime(dst, now);
+        return std::max(now, beacon_time - 10e-3); // 10ms error máx
+    }
+    
+    Event::evtime_t getPrevBeaconTime(Node::nodeid_t dst, Event::evtime_t next_beacon);
 
 public:
 
-    PWDriver(const Node& node, Event::evtime_t bitlen) : DutyDriver(node, bitlen), rng_(node.getId()) {
-    };
+    PWDriver(const Node& node, Event::evtime_t bitlen);
 
     virtual void newData(unsigned int next_hop, Event::evtime_t now) {
         DutyDriver::newData(next_hop, now);
@@ -88,7 +81,7 @@ public:
         if (backoff == 0)
             return now;
 
-        return scheduleTxSlowPath(now, backoff);        
+        return scheduleTxSlowPath(now, backoff);
     }
 
     virtual Event::evtime_t scheduleRx(Event::evtime_t now) {

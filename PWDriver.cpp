@@ -8,7 +8,7 @@
 #include "PWDriver.h"
 
 #include "Event.h"
-#include "Node.h"
+#include "PWNode.h"
 
 #include <boost/random/uniform_int_distribution.hpp>
 
@@ -43,16 +43,23 @@ namespace {
     };
 }
 
+PWDriver::PWDriver(const Node& node, Event::evtime_t bitlen) : DutyDriver(node, bitlen), rng_(node.getId()) {
+};
+
 /* In PW-MAC we sleep between ½ sleepLength and 1.5 sleepLength */
 Event::evtime_t PWDriver::getTimeUntilListen() {
-    return sleep_length_ / 2. + rng_() / (1. * rng_.randMax());
+    return sleep_length_ / 2. + sleep_length_ * (rng_() / (1. * rng_.randMax()));
 }
 
 void PWDriver::scheduleListen(Node::nodeid_t dst, Event::evtime_t now) {
     if (getExpectedBeaconTime(dst, 0) > now) // Hack: there is a current prediction for the future
         return;
 
-    Calendar::newEvent(std::make_unique<PWDriverEvent>(getExpectedBeaconTime(dst, now), *this));
+    const auto fire_time = getExpectedBeaconTime(dst, now);
+    Calendar::newEvent(std::make_unique<PWDriverEvent>(fire_time, *this));
+#ifndef NDEBUG
+    std::cerr << "Node " << getNode().getId() << " schedules wake up at " << fire_time << " with destination " << dst << std::endl;
+#endif
 }
 
 Event::evtime_t PWDriver::scheduleTxSlowPath(Event::evtime_t now, int backoff) const {
@@ -61,4 +68,36 @@ Event::evtime_t PWDriver::scheduleTxSlowPath(Event::evtime_t now, int backoff) c
     boost::random::uniform_int_distribution<int> distr(0, backoff);
 
     return now + getBitLen() * distr(rng);
+}
+
+Event::evtime_t PWDriver::getExpectedExactBeaconTime(Node::nodeid_t dst, Event::evtime_t now) {
+    Event::evtime_t last_beacon = 0;
+    int last_seed = dst;
+
+    if (predictions.find(dst) != predictions.end()) {
+        std::tie(last_beacon, last_seed) = predictions[dst];
+    }
+
+    auto rng = PseudoRNG(last_seed);
+    while (last_beacon < now) {
+        last_beacon += sleep_length_ / 2. + sleep_length_ * (rng() / (1. * rng_.randMax()));
+        predictions[dst] = std::make_tuple(last_beacon, rng.getCurrentValue());
+    }
+
+    return last_beacon;
+}
+
+Event::evtime_t PWDriver::getPrevBeaconTime(Node::nodeid_t dst, Event::evtime_t next_beacon) {
+    if(predictions.find(dst) == predictions.end()) {
+        return 0;
+    }
+
+    Event::evtime_t last_beacon;
+    int last_seed;
+
+    std::tie(last_beacon, last_seed) = predictions[dst];
+
+    auto prev_beacon_delta = sleep_length_ * last_seed / (1. * rng_.randMax()) + sleep_length_ / 2.;
+
+    return next_beacon - prev_beacon_delta;
 }

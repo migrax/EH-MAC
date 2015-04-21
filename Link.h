@@ -19,7 +19,7 @@ class Node;
 
 class Link {
 public:
-    Link(Node& dst) : dst_(dst) {}
+    Link(Node&) {}
     
     auto queuePacket(const Packet& p) {
         packet_queue_.push(p);
@@ -51,7 +51,6 @@ public:
     
 private:
     static const unsigned int capacity_; // 250 kbit/s is the current max. capacity of 802.15.4 physical layers.
-    Node& dst_;
     std::queue<Packet> packet_queue_;
 };
 

@@ -11,7 +11,7 @@
 
 #include "Grid.h"
 #include "RINode.h"
-#include "PeriodicTrafficSource.h"
+#include "PoissonTrafficSource.h"
 #include "HomogeneousSpatialPareto.h"
 #include "PWNode.h"
 #include "EnhNode.h"
@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
     auto size = 1;
     auto density = 10.;
     auto rate = 1 / 10.;
-    auto max_time = 50;
+    auto max_time = 1000;
     int opt;
 
     enum nodetype {
@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    PeriodicTrafficSource(grid, rate);
+    PoissonTrafficSource(grid, rate);
 
     try {
         calendar.run(max_time);
