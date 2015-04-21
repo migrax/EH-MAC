@@ -12,7 +12,7 @@
 #include <queue>
 #include <limits>
 #include <string>
-#include <boost/random/mersenne_twister.hpp>
+#include <random>
 #include <ostream>
 
 #ifndef NDEBUG
@@ -40,7 +40,7 @@ public:
 class Event {
 public:
     using evtime_t = long double;
-    using randomGen_t = boost::mt19937;    
+    using randomGen_t = std::mt19937;        
         
     virtual void process() = 0;
 

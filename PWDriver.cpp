@@ -10,7 +10,7 @@
 #include "Event.h"
 #include "PWNode.h"
 
-#include <boost/random/uniform_int_distribution.hpp>
+#include <random>
 
 #ifndef NDEBUG
 #include <ostream>
@@ -65,7 +65,7 @@ void PWDriver::scheduleListen(Node::nodeid_t dst, Event::evtime_t now) {
 Event::evtime_t PWDriver::scheduleTxSlowPath(Event::evtime_t now, int backoff) const {
     Calendar::randomGen_t& rng = Calendar::getCalendar().getRandomGenerator();
 
-    boost::random::uniform_int_distribution<int> distr(0, backoff);
+    std::uniform_int_distribution<int> distr(0, backoff);
 
     return now + getBitLen() * distr(rng);
 }

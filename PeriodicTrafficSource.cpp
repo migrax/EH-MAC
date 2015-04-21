@@ -9,7 +9,7 @@
 
 #include "Grid.h"
 #include "Event.h"
-#include <boost/random/uniform_real_distribution.hpp>
+#include <random>
 
 using namespace std;
 
@@ -44,7 +44,7 @@ namespace {
 
 PeriodicTrafficSource::PeriodicTrafficSource(const Grid& grid, double rate) : TrafficSource(grid), rate_(rate) {
     auto nodes = grid.countDeployedNodes();
-    auto dist = boost::random::uniform_real_distribution<Event::evtime_t> (0, 1./rate);
+    auto dist = uniform_real_distribution<Event::evtime_t> (0, 1./rate);
     auto& rng = Calendar::getCalendar().getRandomGenerator();
     
     for (unsigned i = 2; i <= nodes; i++) {// The first node does not send traffic        

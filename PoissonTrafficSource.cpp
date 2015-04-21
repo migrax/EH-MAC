@@ -10,7 +10,7 @@
 #include "Grid.h"
 #include "Event.h"
 
-#include <boost/random/exponential_distribution.hpp>
+#include <random>
 
 using namespace std;
 
@@ -52,7 +52,7 @@ PoissonTrafficSource::PoissonTrafficSource(const Grid& grid, double rate) : Traf
 }
 
 Event::evtime_t PoissonTrafficSource::getTimeToNextPacket() const {
-    boost::random::exponential_distribution<Event::evtime_t> exp_distr(rate_);
+    exponential_distribution<Event::evtime_t> exp_distr(rate_);
     
     return exp_distr(Calendar::getCalendar().getRandomGenerator());
 }

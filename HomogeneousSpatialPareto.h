@@ -12,8 +12,7 @@
 #include <vector>
 #include <functional>
 
-#include <boost/random/poisson_distribution.hpp>
-#include <boost/random/uniform_real_distribution.hpp>
+#include <random>
 
 #include "Location.h"
 
@@ -23,9 +22,9 @@ public:
     using value_type = Location::value_type;
 
     HomogeneousSpatialPareto(value_type lambda, RandomGenType& rng, value_type side_len = 1) : lambda_(lambda), height_(side_len), width_(side_len), rng_(rng) {
-        auto poissonDistr = boost::random::poisson_distribution<int, value_type> (lambda * (width_ * height_)); // Parameter: number of expected points in the area
-        auto uniformXDistr = boost::random::uniform_real_distribution<value_type> (0, width_);
-        auto uniformYDistr = boost::random::uniform_real_distribution<value_type> (0, height_);
+        auto poissonDistr = std::poisson_distribution<int> (lambda * (width_ * height_)); // Parameter: number of expected points in the area
+        auto uniformXDistr = std::uniform_real_distribution<value_type> (0, width_);
+        auto uniformYDistr = std::uniform_real_distribution<value_type> (0, height_);
 
         auto nPoints = poissonDistr(rng);
         points_.reserve(nPoints);

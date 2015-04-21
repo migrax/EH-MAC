@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
 
     auto& calendar = Calendar::getCalendar();
     calendar.setRandomSeed(seed);
-    auto hsp = HomogeneousSpatialPareto<boost::mt19937>(density, Calendar::getCalendar().getRandomGenerator(), size);
+    auto hsp = HomogeneousSpatialPareto<std::mt19937>(density, Calendar::getCalendar().getRandomGenerator(), size);
 
     /*auto distance_info = hsp.getMaximumNeighbouringDistance();
     cerr << "The most separated neighboring nodes are: " << get<1>(distance_info) << " and " << get<2>(distance_info) << ". Separated by " << get<0>(distance_info) << endl;*/
