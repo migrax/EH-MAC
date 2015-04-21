@@ -19,15 +19,15 @@ class Node;
 
 class Link {
 public:
-    Link(std::weak_ptr<Node> dst) : dst(dst) {}
+    Link(Node& dst) : dst(dst) {}
     
-    unsigned int queuePacket(const Packet& p) {
+    auto queuePacket(const Packet& p) {
         packetQueue.push(p);
         
         return packetQueue.size();
     }
     
-    std::queue<Packet>::size_type getQueueSize() const {
+    auto getQueueSize() const {
         return packetQueue.size();
     }
     
@@ -37,7 +37,7 @@ public:
         return packetQueue.front();
     }
     
-    std::queue<Packet>::size_type removePacket() {
+    auto removePacket() {
         assert(packetQueue.empty() == false);
         
         packetQueue.pop();
@@ -45,13 +45,13 @@ public:
         return getQueueSize();
     }
     
-    static double getCapacity() {
+    static auto getCapacity() {
         return static_cast<double> (capacity);
     }        
     
 private:
     static const unsigned int capacity; // 250 kbit/s is the current max. capacity of 802.15.4 physical layers.
-    std::weak_ptr<Node> dst;
+    Node& dst;
     std::queue<Packet> packetQueue;
 };
 

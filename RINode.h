@@ -13,10 +13,7 @@
 
 class RINode : public Node {
 public:
-    RINode(const Location& loc) : Node(loc, std::shared_ptr<DutyDriver> (new RIDriver())) {}
-    
-private:
-
+    RINode(const Location& loc) : Node(loc, std::make_unique<RIDriver>(8/Link::getCapacity())) {}    
 };
 
 #endif	/* RINODE_H */

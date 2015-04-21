@@ -16,10 +16,11 @@ Grid::Grid(double transmissionRange) : txRange(transmissionRange), sqTxRange(tra
     assert(txRange > 0);
 }
 
-void Grid::addNode(const shared_ptr<Node>& newNode) {    
+void Grid::addNode(shared_ptr<Node> newNode) {
+    nodesById.insert(make_pair(newNode->getId(), ref(*newNode)));    
     auto loc = newNode->getLocation();
     // Add it to a map of containers ordeder by size to the origin (0, 0)
-    auto ci = nodes.insert(make_pair(loc.getDistanceToOrigin(), newNode)).first;
+    auto ci = nodesByDistance.insert(make_pair(loc.getDistanceToOrigin(), newNode)).first;
     
     /* Find possible neighbours
      * 
@@ -29,16 +30,16 @@ void Grid::addNode(const shared_ptr<Node>& newNode) {
     const double maxDistance = (loc + Location(txRange, txRange)).getDistanceToOrigin();  
     
     auto ri = reverse_iterator<map<double, shared_ptr<Node > >::iterator>(ci);    
-    for (auto i = ri; i != nodes.rend() && i->first >= minDistance; i++) {
+    for (auto i = ri; i != nodesByDistance.rend() && i->first >= minDistance; i++) {
         if (newNode->getLocation().getSquaredDistanceTo(i->second->getLocation()) <= sqTxRange) {
-            newNode->addNeightbour(i->second);
-            i->second->addNeightbour(newNode);
+            newNode->addNeightbour(*i->second);
+            i->second->addNeightbour(*newNode);
         }
     }
-    for (auto i = next(ci); i != nodes.end() && i->first <= maxDistance; i++) {
+    for (auto i = next(ci); i != nodesByDistance.end() && i->first <= maxDistance; i++) {
         if (newNode->getLocation().getSquaredDistanceTo(i->second->getLocation()) <= sqTxRange) {
-            newNode->addNeightbour(i->second);
-            i->second->addNeightbour(newNode);
+            newNode->addNeightbour(*i->second);
+            i->second->addNeightbour(*newNode);
         }        
     }
 }
@@ -46,7 +47,7 @@ void Grid::addNode(const shared_ptr<Node>& newNode) {
 #ifndef NDEBUG
     ostream& operator<<(ostream& os, const Grid& g) {
         os << "Grid with transmission range: " << g.txRange << endl;
-        for (auto n : g.nodes)
+        for (auto n : g.nodesByDistance)
             os << *n.second << endl;
         
         return os;

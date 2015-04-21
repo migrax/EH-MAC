@@ -25,7 +25,7 @@
 class NodeEvent : public Event {
 public:
 
-    NodeEvent(evtime_t d_time, const std::shared_ptr<Node>& node) : Event(d_time), node(node) {
+    NodeEvent(evtime_t d_time, Node& node) : Event(d_time), node(node) {
     }
 
 #ifndef NDEBUG
@@ -34,17 +34,17 @@ public:
 #endif
 
 protected:
-    std::shared_ptr<Node> node;
+    Node& node;
 };
 
 class BeaconEvent : public NodeEvent {
 public:
 
     enum class beacon_kind_t {
-        BEACON_START/*, BEACON_END*/
+        BEACON_START, BEACON_END
     };
 
-    BeaconEvent(evtime_t d_time, const std::shared_ptr<Node>& node, beacon_kind_t b_kind = beacon_kind_t::BEACON_START) : NodeEvent(d_time, node), bkind(bkind) {
+    BeaconEvent(evtime_t d_time, Node& node, beacon_kind_t bkind = beacon_kind_t::BEACON_START) : NodeEvent(d_time, node), bkind(bkind) {
     }
 
     void process();
@@ -52,7 +52,15 @@ public:
 
     virtual std::ostream& dump(std::ostream& os) const {
         NodeEvent::dump(os);
-        os << "Kind: Beacon_START ";
+        os << "Kind: Beacon_";
+        switch (bkind) {
+            case beacon_kind_t::BEACON_START:
+                os << "START ";
+                break;
+            case beacon_kind_t::BEACON_END:
+                os << "END ";
+                break;
+        }
 
         return os;
     }
@@ -68,7 +76,7 @@ public:
         DATA_START, DATA_END
     };
 
-    DataEvent(evtime_t d_time, const std::shared_ptr<Node>& src_node, const std::shared_ptr<Node>& dst_node, const Packet& p, data_kind_t dkind = data_kind_t::DATA_START) : NodeEvent(d_time, src_node), dst(dst_node), packet(p), dkind(dkind) {
+    DataEvent(evtime_t d_time, Node& src_node, Node& dst_node, const Packet& p, data_kind_t dkind = data_kind_t::DATA_START) : NodeEvent(d_time, src_node), dst(dst_node), packet(p), dkind(dkind) {
     }
 
     void process();
@@ -79,35 +87,58 @@ public:
 #endif
 
 private:
+    Node& dst;
     const Packet packet;
     data_kind_t dkind;
-    std::shared_ptr<Node> dst;
 
-    double getTxTime(const Packet& p) const {
+    auto getTxTime(const Packet& p) const {
         return 8 * p.getPSize() / static_cast<double> (Link::getCapacity());
     }
 };
 
 #ifndef NDEBUG
-std::ostream& operator<<(std::ostream& os, const DataEvent::data_kind_t& kind); 
+std::ostream& operator<<(std::ostream& os, const DataEvent::data_kind_t& kind);
 #endif
 
 class Node {
 public:
-    friend class BeaconEvent;
-    friend class DataEvent;
-    typedef unsigned int nodeid_t;
+    using nodeid_t = unsigned int;
 
-    void addNeightbour(std::shared_ptr<Node> neigh) {
-        neighbours.push_back(neigh);
-        links[neigh->getId()] = std::make_shared<Link>(neigh);
+private:
+    static nodeid_t uniqueIdCounter;
+
+    RoutingTable r_table;
+    const Location loc;    
+    const nodeid_t uniqueId;
+    unsigned int rxingData;
+    Packet::packetid_t lastPacketId;
+    int n_rtx;
+    bool colliding;
+    std::unique_ptr<DutyDriver> driver;
+
+    std::vector<std::reference_wrapper<Node>> neighbours;
+    std::map<nodeid_t, std::shared_ptr<Link> > links;
+
+    Node& getClosestNeighbour(const Location& dest) const;
+
+    auto getBackOff() const {
+        return (1 << n_rtx) - 1; // 2**n_rtx - 1
     }
 
-    nodeid_t getId() const {
+public:
+    friend class BeaconEvent;
+    friend class DataEvent;
+
+    auto getId() const {
         return uniqueId;
     }
 
-    const Location &getLocation() const {
+    void addNeightbour(Node& neigh) {
+        neighbours.push_back(neigh);
+        links[neigh.getId()] = std::make_shared<Link>(neigh);
+    }
+
+    auto getLocation() const {
         return loc;
     }
 
@@ -115,54 +146,106 @@ public:
         if (p.getDestination() == getId())
             return Process(p);
 
-        std::shared_ptr<Node> nextHop = r_table.getNext(p.getDestination());
+        auto nextHop = r_table.getNext(p.getDestination());
         if (nextHop == nullptr) {
-            nextHop = getClosestNeighbour(p.getFinalLocation());
-            r_table.addEntry(p.getDestination(), nextHop);
+            nextHop = &getClosestNeighbour(p.getFinalLocation());
+            r_table.addEntry(p.getDestination(), *nextHop);
         }
 
         links[nextHop->getId()]->queuePacket(p);
         driver->newData(nextHop->getId());
     }
 
-    Event *getBeacon(std::shared_ptr<Node>& node, Event::evtime_t now) {
+    void endListening() {
+        driver->setIdlestMode();
+        colliding = false;
+    }
+
+    auto getBeacon(Node& orig, Event::evtime_t now, int backoff) {
         switch (driver->getStatus()) {
             case DutyDriver::status_t::RECEIVING:
+                // Collision
+                colliding = true;
             case DutyDriver::status_t::TRANSMITTING:
-                // FIXME: This is a collision
+                // This may a collision, but on a receiver
                 break;
             case DutyDriver::status_t::SLEEPING:
                 break; // Nothing to do
             case DutyDriver::status_t::LISTENING:
-                if (links[node->getId()]->getQueueSize() == 0)
+                if (links[orig.getId()]->getQueueSize() == 0)
                     break; // No data to send
-                return new DataEvent(driver->scheduleTx(now), std::shared_ptr<Node> (this), node, links[node->getId()]->getNextPacket());
+                return std::make_unique<DataEvent>(driver->scheduleTx(now, getBackOff()), *this, orig, links[orig.getId()]->getNextPacket());
         }
 
-        return nullptr;
+        return std::unique_ptr<DataEvent>(nullptr);
     }
 
-    void startReception(std::shared_ptr<Node>& orig) {
+    auto sendBeacon(Event::evtime_t now) {
+        driver->setStatus(DutyDriver::status_t::LISTENING);
+
+        int backoff = getBackOff();
+
+        for (auto ne : neighbours) {            
+            auto nev = ne.get().getBeacon(*this, now, backoff);
+            if (nev != nullptr)
+                Calendar::newEvent(std::move(nev));
+        }
+
+        // Wait for 5 bytes after the end of the backoff period.
+        return std::make_unique<BeaconEvent>((5 + backoff) / Link::getCapacity() + now, *this, BeaconEvent::beacon_kind_t::BEACON_END);
+    }
+
+    void startTransmission(Node& dst) {
+        dst.startReception(getId());
+
+        driver->setStatus(DutyDriver::status_t::TRANSMITTING);
+    }
+
+    void endTransmission(Node& dst, const Packet& p, Event::evtime_t now) {
+        dst.endReception(*this, p, now);
+    }
+
+    void startReception(nodeid_t) {
+        rxingData += 1;
         if (driver->getStatus() != DutyDriver::status_t::LISTENING) {
             // FIXME: Colision or not ready
         }
         driver->setStatus(DutyDriver::status_t::RECEIVING); // Useful for Collision Avoidance
     }
 
-    void endReception(std::shared_ptr<Node>& orig, const Packet& p) {
-        auto newStatus = orig->ackReceived(getId()); // Simulate a /small/ unicast ACK
-        driver->setStatus(newStatus);
-        Route(p);
-    }
+    auto ackReceived(Node& neigh, Event::evtime_t now, bool success = true) {
+        if (success == false) {
+            n_rtx += 1;
+            // We have to wait until next beacon
+            return DutyDriver::status_t::LISTENING; // FIXME: This can be different in other protocols
+        }
 
-    DutyDriver::status_t ackReceived(nodeid_t neighId) {
-        auto qSize = links[neighId]->removePacket();
+        auto qSize = links[neigh.getId()]->removePacket();
+        n_rtx = 0;
 
         // If we have more packets to send, ask receiver to go to listening state (Simulate a unicast beacon to it)
-        if (qSize > 0)
+        if (qSize > 0) {
+            // Add new event to transmit the next packet
+            Calendar::newEvent(std::make_unique<DataEvent> (driver->scheduleTx(now, getBackOff()), *this, neigh, links[neigh.getId()]->getNextPacket()));
             return DutyDriver::status_t::RECEIVING;
-        else
+        } else {
+            driver->emptyQueue(neigh.getId());
             return DutyDriver::status_t::SLEEPING;
+        }
+    }
+
+    void endReception(Node& orig, const Packet& p, Event::evtime_t now) {
+        assert(rxingData > 0);
+
+        if (rxingData-- > 1) { // Collision
+            colliding = true;
+            driver->setStatus(DutyDriver::status_t::SLEEPING);
+            orig.ackReceived(orig, now, false);
+        } else {
+            auto newStatus = orig.ackReceived(*this, now); // Simulate a /small/ unicast ACK
+            driver->setStatus(newStatus);
+            Route(p);
+        }
     }
 
     void Process(const Packet& p) {
@@ -173,19 +256,7 @@ public:
 #endif
 
 protected:
-    Node(const Location&, std::shared_ptr<DutyDriver> driver);
-
-private:
-    static nodeid_t uniqueIdCounter;
-
-    RoutingTable r_table;
-    const nodeid_t uniqueId;
-    const Location loc;
-    std::shared_ptr<DutyDriver> driver;
-    std::vector<std::shared_ptr<Node> > neighbours;
-    std::map<nodeid_t, std::shared_ptr<Link> > links;
-
-    std::shared_ptr<Node> getClosestNeighbour(const Location& dest) const;
+    Node(const Location&, std::unique_ptr<DutyDriver> driver);
 };
 
 #endif	/* NODE_H */

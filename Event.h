@@ -21,23 +21,24 @@ class Calendar;
 
 class Event {
 public:
-    typedef long double evtime_t;
-    typedef boost::mt19937 randomGen;
-
+    using evtime_t = long double;
+    using randomGen_t = boost::mt19937;    
+        
     virtual void process() = 0;
 
-    evtime_t getDispatchTime() const {
+    auto getDispatchTime() const {
         return dispatch_time;
     }
 
-    bool operator>(const Event& ev2) const {
+    auto operator>(const Event& ev2) const {
         return dispatch_time > ev2.dispatch_time;
     }
 
 #ifndef NDEBUG
+
     virtual std::ostream& dump(std::ostream& os) const {
         os << "Time: " << getDispatchTime() << ' ';
-        
+
         return os;
     }
 #endif
@@ -46,13 +47,13 @@ protected:
 
     Event(evtime_t d_time);
 
-    void newEvent(const std::shared_ptr<Event>& ev) const;
-    
-    randomGen& getRandomGenerator() const;
+    void newEvent(std::unique_ptr<Event> ev) const;
+
+    randomGen_t& getRandomGenerator() const;
 
 private:
-    evtime_t dispatch_time;
     Calendar& calendar;
+    evtime_t dispatch_time;
 };
 
 
@@ -69,57 +70,53 @@ namespace std {
 }
 
 class Calendar {
-public:   
-    typedef Event::randomGen randomGen;
-    
+public:
+    using randomGen_t = Event::randomGen_t;    
+
     Calendar() {
     }
 
-    void addEvent(const std::shared_ptr<Event>& ev) {
-        events.push(ev);
+    void addEvent(std::unique_ptr<Event> ev) {
+        events.push(std::move(ev));
     }
 
-    Event::evtime_t getNextEventTime() const {
+    auto getNextEventTime() const {
         if (events.empty())
             return std::numeric_limits<Event::evtime_t>::infinity();
 
         return events.top()->getDispatchTime();
     }
 
-    std::shared_ptr<Event> getCurrentEvent(Event::evtime_t now) {
+    auto getCurrentEvent(Event::evtime_t now) {
         if (now <= getNextEventTime()) {
-            std::shared_ptr<Event> ev = events.top();
+            auto ev = events.top();
             events.pop();
 
-            return ev;
+            return ev.get();
         } else {
-            return nullptr;
+            return static_cast<Event *> (nullptr);
         }
     }
 
-    static Calendar &getCalendar() {
+    static Calendar& getCalendar() {
         return calendar;
     }
 
-    static void newEvent(const std::shared_ptr<Event>& ev) {
-        getCalendar().events.push(ev);
+    static void newEvent(std::unique_ptr<Event> ev) {
+        getCalendar().events.push(std::move(ev));
     }
 
-    static void newEvent(Event *ev) {
-        return newEvent(std::shared_ptr<Event> (ev));
-    }
-
-    randomGen& getRandomGenerator() {
+    randomGen_t& getRandomGenerator() {
         return rng;
     }
-    
+
     void run(Event::evtime_t finish = std::numeric_limits<Event::evtime_t>::infinity());
 
 private:
     static Calendar &calendar;
-    
-    std::priority_queue<std::shared_ptr<Event>, std::vector<std::shared_ptr<Event>>, std::greater<std::shared_ptr<Event>>> events;    
-    randomGen rng;
+
+    std::priority_queue<std::shared_ptr<Event>, std::vector<std::shared_ptr<Event>>, std::greater<std::shared_ptr<Event>>> events;
+    randomGen_t rng;
 };
 
 

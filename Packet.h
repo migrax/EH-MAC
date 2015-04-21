@@ -12,25 +12,35 @@
 
 class Packet {
 public:
-    Packet(unsigned int src, unsigned int dst, Location dst_loc) : size(128), src(src), dst(dst), dst_loc(dst_loc) {}
+    using packetid_t = unsigned int ;
     
-    unsigned int getDestination() const {
+    // Caution: 0 should not ever be a valid packetId
+    Packet(unsigned int src, unsigned int dst, Location dst_loc) : uniqueId(++uniqueIdCounter), size(128), src(src), dst(dst), dst_loc(dst_loc) {}
+    
+    auto getDestination() const {
         return dst;
     }
     
-    unsigned int getOrigin() const {
+    auto getOrigin() const {
         return src;
     }
     
-    const Location& getFinalLocation() const {
+    auto getFinalLocation() const {
         return dst_loc;
     }
     
-    const unsigned int getPSize() const {
+    auto getPSize() const {
         return size;
     }
     
+    auto getId() const {
+        return uniqueId;
+    }
+    
 private:
+    static packetid_t uniqueIdCounter;
+    
+    const packetid_t uniqueId;
     const unsigned int size; // Maximum size of IEEE 802.15.4 is 128 bytes
     const unsigned int src, dst;
     const Location dst_loc;

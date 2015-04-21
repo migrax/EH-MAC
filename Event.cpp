@@ -18,12 +18,12 @@ Calendar &Calendar::calendar = mainCalendar;
 Event::Event(evtime_t d_time) : calendar(Calendar::getCalendar()), dispatch_time(d_time) {
 }
 
-Event::randomGen& Event::getRandomGenerator() const {
+Event::randomGen_t& Event::getRandomGenerator() const {
     return calendar.getRandomGenerator();
 }
 
-void Event::newEvent(const shared_ptr<Event>& ev) const {
-    return Calendar::getCalendar().newEvent(ev);
+void Event::newEvent(unique_ptr<Event> ev) const {
+    return Calendar::getCalendar().newEvent(move(ev));
 }
 
 void Calendar::run(Event::evtime_t finish) {
@@ -32,15 +32,15 @@ void Calendar::run(Event::evtime_t finish) {
         if (ev->getDispatchTime() > finish)
             break;
 
-        ev->process();
-
 #ifndef NDEBUG
         ev->dump(cerr);
-        cerr << "Pending: " << events.size() << endl;
+        cerr << "Pending: " << events.size();
 #endif
-
-
+        ev->process();
+        cerr << " Done!" << endl;
+        
         events.pop();
+
     }
 #ifndef NDEBUG    
     cerr << "Simulation ends at " << finish << 's' << endl;

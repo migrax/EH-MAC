@@ -14,52 +14,60 @@ using namespace std;
 
 Node::nodeid_t Node::uniqueIdCounter = 0;
 
-Node::Node(const Location& loc, shared_ptr<DutyDriver> driver) : loc(loc), driver(driver), uniqueId(++uniqueIdCounter) {
+Node::Node(const Location& loc, unique_ptr<DutyDriver> dutydriver) :
+loc(loc), uniqueId(++uniqueIdCounter), rxingData(0), lastPacketId(0), n_rtx(0), colliding(false), driver(std::move(dutydriver)) { // 0 is not a valid PacketId number
     // Start the beacons!
-    Calendar::newEvent(new BeaconEvent(driver->scheduleRx(0), shared_ptr<Node> (this)));
+    Calendar::newEvent(make_unique<BeaconEvent> (driver->scheduleRx(0), *this));
 }
 
-shared_ptr<Node> Node::getClosestNeighbour(const Location& dest) const {
-    shared_ptr<Node> best = nullptr;
+Node& Node::getClosestNeighbour(const Location& dest) const {
+    Node *best = nullptr;
     double best_sq_distance = dest.getSquaredDistanceTo(getLocation());
 
     for (auto ne : neighbours) {
-        double sq_distance = dest.getSquaredDistanceTo(ne->getLocation());
+        Node& neigh = ne.get();
+        double sq_distance = dest.getSquaredDistanceTo(neigh.getLocation());
         if (sq_distance < best_sq_distance) {
             best_sq_distance = sq_distance;
-            best = ne;
+            best = &ne.get();
         }
     }
 
-    /* Unreachable destination */    
+    /* Unreachable destination */
     assert(best != nullptr);
 
-    return best;
+    return *best;
 }
 
 #ifndef NDEBUG
 
 ostream& NodeEvent::dump(ostream& os) const {
     Event::dump(os);
-    os << "Node: " << node->getId() << ' ';
+    os << "Node: " << node.getId() << ' ';
 
     return os;
 }
 #endif
 
 void BeaconEvent::process() {
-    if (bkind == beacon_kind_t::BEACON_START) {
-        // Avoid obvious collissions
-        if (node->driver->getStatus() != DutyDriver::status_t::RECEIVING && node->driver->getStatus() != DutyDriver::status_t::TRANSMITTING)
-            for (auto ne : node->neighbours) {
-                auto nev = ne->getBeacon(node, getDispatchTime());
-                if (nev != nullptr)
-                    newEvent(shared_ptr<Event> (nev));
+    switch (bkind) {
+        case beacon_kind_t::BEACON_START:
+            /* Avoid obvious collissions
+             * a) We are not receiving data, even if not directed to us
+             * b) We are not transmitting data
+             */
+            if (node.rxingData == 0 && node.driver->getStatus() != DutyDriver::status_t::RECEIVING && node.driver->getStatus() != DutyDriver::status_t::TRANSMITTING) {
+                auto endBEaconEvenet = node.sendBeacon(getDispatchTime());
+                if (endBEaconEvenet != nullptr)
+                    newEvent(move(endBEaconEvenet));
             }
+            // Generate the next beacon
+            newEvent(make_unique<BeaconEvent>(node.driver->scheduleRx(getDispatchTime()), node));
+            break;
+        case beacon_kind_t::BEACON_END:
+            node.endListening();
+            break;
     }
-
-    // Generate the next beacon
-    newEvent(shared_ptr<Event> (new BeaconEvent(node->driver->scheduleRx(getDispatchTime()), node)));
 }
 
 #ifndef NDEBUG
@@ -78,7 +86,7 @@ ostream& operator<<(ostream& os, const DataEvent::data_kind_t& kind) {
 
 ostream& DataEvent::dump(ostream& os) const {
     NodeEvent::dump(os);
-    os << "Kind: DATA(" << dkind << ") Dst: " << dst->getId() << ' ';
+    os << "Kind: DATA(" << dkind << ") Dst: " << dst.getId() << ' ';
 
     return os;
 }
@@ -87,14 +95,14 @@ ostream& DataEvent::dump(ostream& os) const {
 void DataEvent::process() {
     switch (dkind) {
         case data_kind_t::DATA_START:
-            dst->startReception(node);
+            node.startTransmission(dst);
 
             // New DataEnd Event
-            newEvent(std::shared_ptr<Event> (new DataEvent(getDispatchTime() + getTxTime(packet), node, dst, packet, data_kind_t::DATA_END)));
+            newEvent(std::make_unique<DataEvent>(getDispatchTime() + getTxTime(packet), node, dst, packet, data_kind_t::DATA_END));
 
             break;
         case data_kind_t::DATA_END:
-            dst->endReception(node, packet);
+            node.endTransmission(dst, packet, getDispatchTime());
             break;
     }
 }
@@ -105,7 +113,7 @@ ostream& operator<<(ostream& os, const Node& n) {
     os << "Node id: " << n.getId() << " Location: " << n.getLocation() << endl;
     os << "  Neighbours: ";
     for (auto ne : n.neighbours) {
-        os << ne->getId() << " ";
+        os << ne.get().getId() << " ";
     }
 
     return os;

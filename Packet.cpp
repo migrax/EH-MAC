@@ -7,3 +7,4 @@
 
 #include "Packet.h"
 
+Packet::packetid_t Packet::uniqueIdCounter = 0;
