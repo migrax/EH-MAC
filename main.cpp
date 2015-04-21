@@ -74,8 +74,9 @@ int main(int argc, char** argv) {
     cerr << "The most separated neighboring nodes are: " << get<1>(distance_info) << " and " << get<2>(distance_info) << ". Separated by " << get<0>(distance_info) << endl;*/
 
     auto distance_info = hsp.getMaximumNeighbouringDistanceToOrigin();
+#ifndef NDEBUG
     cerr << "The neighboring with the furthest next host are: " << get<1>(distance_info) << " and " << get<2>(distance_info) << ". Separated by " << get<0>(distance_info) << endl;
-
+#endif
     auto grid = Grid(1.01 * get<0>(distance_info));
 
     for (auto p : hsp.getPoints()) {
