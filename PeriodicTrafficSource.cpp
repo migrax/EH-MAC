@@ -17,11 +17,11 @@ namespace {
     class PeriodicTrafficSourceEvent : public Event {
     public:
 
-        PeriodicTrafficSourceEvent(const PeriodicTrafficSource& pSource, Node::nodeid_t src, Node::nodeid_t dst, Event::evtime_t dispatchTime) : Event(dispatchTime), pSource(pSource), src(src), dst(dst) {            
+        PeriodicTrafficSourceEvent(const PeriodicTrafficSource& periodic_source, Node::nodeid_t src, Node::nodeid_t dst, Event::evtime_t dispatch_time) : Event(dispatch_time), periodic_traffic_source_(periodic_source), src_(src), dst(dst) {            
         }
 
         virtual void process() {
-            newEvent(pSource.sendPacket(src, dst, getDispatchTime()));
+            newEvent(periodic_traffic_source_.sendPacket(src_, dst, getDispatchTime()));
         }
 
 #ifndef NDEBUG
@@ -29,19 +29,19 @@ namespace {
         virtual ostream& dump(ostream& os) const {
             Event::dump(os);
 
-            os << "Kind: PeriodicTraffic " << " Src: " << src << " Dst: " << dst << ' ';
+            os << "Kind: PeriodicTraffic " << " Src: " << src_ << " Dst: " << dst << ' ';
 
             return os;
         }
 #endif
 
     private:
-        const PeriodicTrafficSource& pSource;
-        const Node::nodeid_t src, dst;
+        const PeriodicTrafficSource& periodic_traffic_source_;
+        const Node::nodeid_t src_, dst;
     };
 }
 
-PeriodicTrafficSource::PeriodicTrafficSource(const Grid& grid, double rate) : TrafficSource(grid), rate(rate) {
+PeriodicTrafficSource::PeriodicTrafficSource(const Grid& grid, double rate) : TrafficSource(grid), rate_(rate) {
     auto nodes = grid.countDeployedNodes();
 
     for (unsigned i = 2; i <= nodes; i++) {// The first node does not send traffic        
@@ -54,8 +54,8 @@ Event::evtime_t PeriodicTrafficSource::getTimeToNextPacket() const {
 }
 
 unique_ptr<Event> PeriodicTrafficSource::sendPacket(Node::nodeid_t src, Node::nodeid_t dst, Event::evtime_t now) const {
-    Node& srcNode = getGrid().getNodeById(src);
+    Node& src_node = getGrid().getNodeById(src);
 
-    srcNode.Route(Packet(src, dst, getGrid().getNodeLocation(dst)));
+    src_node.Route(Packet(src, dst, getGrid().getNodeLocation(dst), now), now);
     return make_unique<PeriodicTrafficSourceEvent>(*this, src, dst, now + getTimeToNextPacket());   
 }

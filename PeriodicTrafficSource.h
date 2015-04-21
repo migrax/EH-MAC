@@ -18,7 +18,7 @@ public:
     virtual std::unique_ptr<Event> sendPacket(Node::nodeid_t, Node::nodeid_t, Event::evtime_t) const;
     
 private:
-    const double rate;
+    const double rate_;
     
     Event::evtime_t getTimeToNextPacket() const;
 };

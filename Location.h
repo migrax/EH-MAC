@@ -15,22 +15,23 @@
 
 class Location {
 public:
-
-    Location(double lat, double lon) : lat(lat), lon(lon) {
+    using value_type = double;
+    
+    Location(value_type lat, value_type lon) : lat_(lat), lon_(lon) {
         assert(lat >= 0);
         assert(lon >= 0);
-    }    
-
+    }
+    
     auto getLatitude() const {
-        return lat;
+        return lat_;
     }
 
     auto getLongitude() const {
-        return lon;
+        return lon_;
     }
 
     auto getSquaredDistanceTo(const Location& origin) const {
-        return (lat - origin.lat)*(lat - origin.lat) + (lon - origin.lon)*(lon - origin.lon);
+        return (lat_ - origin.lat_)*(lat_ - origin.lat_) + (lon_ - origin.lon_)*(lon_ - origin.lon_);
     }
 
     auto getDistanceTo(const Location& origin) const {
@@ -42,16 +43,19 @@ public:
     }
 
     auto operator+(const Location& b) const {
-        return Location(lat + b.lat, lon + b.lon);
+        return Location(lat_ + b.lat_, lon_ + b.lon_);
     }
 
     auto operator-(const Location& b) const {
-        return Location(std::max(0., lat - b.lat), std::max(0., lon - b.lon));
+        return Location(std::max(0., lat_ - b.lat_), std::max(0., lon_ - b.lon_));
     }
 
-
+    auto operator==(const Location& b) const {
+        return lat_ == b.lat_ && lon_ == b.lon_;
+    }
+    
 private:
-    const double lat, lon;
+    value_type lat_, lon_;
 };
 
 std::ostream& operator<<(std::ostream& os, const Location& loc);

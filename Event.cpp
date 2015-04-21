@@ -9,17 +9,13 @@
 
 using namespace std;
 
-namespace {
-    Calendar mainCalendar;
-}
+std::unique_ptr<Calendar> Calendar::calendar(nullptr);
 
-Calendar &Calendar::calendar = mainCalendar;
-
-Event::Event(evtime_t d_time) : calendar(Calendar::getCalendar()), dispatch_time(d_time) {
+Event::Event(evtime_t d_time) : calendar_(Calendar::getCalendar()), dispatch_time_(d_time) {
 }
 
 Event::randomGen_t& Event::getRandomGenerator() const {
-    return calendar.getRandomGenerator();
+    return calendar_.getRandomGenerator();
 }
 
 void Event::newEvent(unique_ptr<Event> ev) const {
@@ -34,11 +30,13 @@ void Calendar::run(Event::evtime_t finish) {
 
 #ifndef NDEBUG
         ev->dump(cerr);
-        cerr << "Pending: " << events.size();
+        cerr << "Pending: " << events.size() << endl;
 #endif
         ev->process();
+#ifndef NDEBUG
         cerr << " Done!" << endl;
-        
+#endif
+
         events.pop();
 
     }

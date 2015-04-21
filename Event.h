@@ -11,13 +11,31 @@
 #include <memory>
 #include <queue>
 #include <limits>
+#include <string>
 #include <boost/random/mersenne_twister.hpp>
+#include <ostream>
 
 #ifndef NDEBUG
 #include <iostream>
 #endif
 
 class Calendar;
+
+class SimulationException {
+protected:
+    const std::string message;
+    
+public:
+    SimulationException(std::string message) : message(message) {}
+    
+    auto getMessage() const {
+        return message;
+    }
+    
+    virtual std::ostream& debug(std::ostream& os) const {
+        return os;
+    }
+};
 
 class Event {
 public:
@@ -27,11 +45,11 @@ public:
     virtual void process() = 0;
 
     auto getDispatchTime() const {
-        return dispatch_time;
+        return dispatch_time_;
     }
 
     auto operator>(const Event& ev2) const {
-        return dispatch_time > ev2.dispatch_time;
+        return dispatch_time_ > ev2.dispatch_time_;
     }
 
 #ifndef NDEBUG
@@ -52,8 +70,8 @@ protected:
     randomGen_t& getRandomGenerator() const;
 
 private:
-    Calendar& calendar;
-    evtime_t dispatch_time;
+    Calendar& calendar_;
+    evtime_t dispatch_time_;
 };
 
 
@@ -76,7 +94,11 @@ public:
     Calendar() {
     }
 
-    void addEvent(std::unique_ptr<Event> ev) {
+    void setRandomSeed(int seed) {
+        rng = randomGen_t(seed);
+    }
+    
+    void addEvent(std::unique_ptr<Event> ev) {        
         events.push(std::move(ev));
     }
 
@@ -99,11 +121,14 @@ public:
     }
 
     static Calendar& getCalendar() {
-        return calendar;
+        if (calendar == nullptr)
+            calendar = std::make_unique<Calendar>();
+        
+        return *calendar;
     }
 
-    static void newEvent(std::unique_ptr<Event> ev) {
-        getCalendar().events.push(std::move(ev));
+    static void newEvent(std::unique_ptr<Event> ev) {        
+        getCalendar().addEvent(std::move(ev));
     }
 
     randomGen_t& getRandomGenerator() {
@@ -113,7 +138,8 @@ public:
     void run(Event::evtime_t finish = std::numeric_limits<Event::evtime_t>::infinity());
 
 private:
-    static Calendar &calendar;
+    static std::unique_ptr<Calendar> calendar;
+    Calendar(const Calendar&) {}; // Disable copy constructor
 
     std::priority_queue<std::shared_ptr<Event>, std::vector<std::shared_ptr<Event>>, std::greater<std::shared_ptr<Event>>> events;
     randomGen_t rng;

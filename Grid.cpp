@@ -12,42 +12,42 @@
 
 using namespace std;
 
-Grid::Grid(double transmissionRange) : txRange(transmissionRange), sqTxRange(transmissionRange*transmissionRange) {
-    assert(txRange > 0);
+Grid::Grid(Location::value_type transmission_range) : tx_range_(transmission_range), sq_tx_range_(transmission_range*transmission_range) {
+    assert(tx_range_ > 0);
 }
 
-void Grid::addNode(shared_ptr<Node> newNode) {
-    nodesById.insert(make_pair(newNode->getId(), ref(*newNode)));    
-    auto loc = newNode->getLocation();
+void Grid::addNode(shared_ptr<Node> new_node) {
+    nodes_by_id_.insert(make_pair(new_node->getId(), ref(*new_node)));    
+    auto loc = new_node->getLocation();
     // Add it to a map of containers ordeder by size to the origin (0, 0)
-    auto ci = nodesByDistance.insert(make_pair(loc.getDistanceToOrigin(), newNode)).first;
+    auto ci = nodes_by_distance_.insert(make_pair(loc.getDistanceToOrigin(), new_node)).first;
     
     /* Find possible neighbours
      * 
      * We only find those nodes that are further that (lat-range. lon-range) from
      * the origin, but closer than (lat+range, lon+range */
-    const double minDistance = (loc - Location(txRange, txRange)).getDistanceToOrigin();
-    const double maxDistance = (loc + Location(txRange, txRange)).getDistanceToOrigin();  
+    const double minDistance = (loc - Location(tx_range_, tx_range_)).getDistanceToOrigin();
+    const double maxDistance = (loc + Location(tx_range_, tx_range_)).getDistanceToOrigin();  
     
     auto ri = reverse_iterator<map<double, shared_ptr<Node > >::iterator>(ci);    
-    for (auto i = ri; i != nodesByDistance.rend() && i->first >= minDistance; i++) {
-        if (newNode->getLocation().getSquaredDistanceTo(i->second->getLocation()) <= sqTxRange) {
-            newNode->addNeightbour(*i->second);
-            i->second->addNeightbour(*newNode);
+    for (auto i = ri; i != nodes_by_distance_.rend() && i->first >= minDistance; i++) {
+        if (new_node->getLocation().getSquaredDistanceTo(i->second->getLocation()) <= sq_tx_range_) {
+            new_node->addNeightbour(*i->second);
+            i->second->addNeightbour(*new_node);
         }
     }
-    for (auto i = next(ci); i != nodesByDistance.end() && i->first <= maxDistance; i++) {
-        if (newNode->getLocation().getSquaredDistanceTo(i->second->getLocation()) <= sqTxRange) {
-            newNode->addNeightbour(*i->second);
-            i->second->addNeightbour(*newNode);
+    for (auto i = next(ci); i != nodes_by_distance_.end() && i->first <= maxDistance; i++) {
+        if (new_node->getLocation().getSquaredDistanceTo(i->second->getLocation()) <= sq_tx_range_) {
+            new_node->addNeightbour(*i->second);
+            i->second->addNeightbour(*new_node);
         }        
     }
 }
 
 #ifndef NDEBUG
     ostream& operator<<(ostream& os, const Grid& g) {
-        os << "Grid with transmission range: " << g.txRange << endl;
-        for (auto n : g.nodesByDistance)
+        os << "Grid with transmission range: " << g.tx_range_ << endl;
+        for (auto n : g.nodes_by_distance_)
             os << *n.second << endl;
         
         return os;

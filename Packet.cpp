@@ -7,4 +7,12 @@
 
 #include "Packet.h"
 
-Packet::packetid_t Packet::uniqueIdCounter = 0;
+using namespace std;
+
+Packet::packetid_t Packet::uniqueIdCounter_ = 0;
+
+ostream& operator<<(ostream& os, const Packet& p) {
+    os << p.getId() << " (" << p.getOrigin() << " → " << p.getDestination() << ")";
+    
+    return os;
+}

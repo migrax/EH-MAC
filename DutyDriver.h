@@ -13,6 +13,8 @@
 #include <set>
 #include <cassert>
 
+class Node;
+
 class DutyDriver {
 public:
 
@@ -26,48 +28,54 @@ public:
         return curStatus;
     }
 
-    virtual void newData(unsigned int nextHop) {
-        activeHops.insert(nextHop);
-
-        if (getStatus() == status_t::SLEEPING)
-            setIdlestMode();
+    virtual void newData(unsigned int nextHop, Event::evtime_t now) {
+        activeHops_.insert(nextHop);
     }
 
     virtual void emptyQueue(unsigned int nextHop) {
-        assert(activeHops.find(nextHop) != activeHops.end());
+        assert(activeHops_.find(nextHop) != activeHops_.end());
 
-        activeHops.erase(nextHop);
+        activeHops_.erase(nextHop);
     }
 
     virtual Event::evtime_t scheduleTx(Event::evtime_t, int backoff) const = 0;
 
-    virtual Event::evtime_t scheduleRx(Event::evtime_t) const = 0;
+    virtual Event::evtime_t scheduleRx(Event::evtime_t) = 0;
 
-    void setStatus(status_t newStatus) {
+    void setStatus(status_t newStatus, Event::evtime_t now) {
         curStatus = newStatus;
+        
+        logStatus(now);        
     }
 
-    virtual void setIdlestMode() = 0;
+    virtual void setIdlestMode(Event::evtime_t) = 0;
+    
+    auto& getNode() const {
+        return node_;
+    }
 
 protected:
 
-    DutyDriver(Event::evtime_t bytelen) : curStatus(status_t::SLEEPING) {
-    }
+    DutyDriver(const Node& node, Event::evtime_t bitlen) : curStatus(status_t::SLEEPING), bitlen_(bitlen), node_(node) {}
 
-    auto getByteLen() const {
-        return bytelen;
+    auto getBitLen() const {
+        return bitlen_;
     }
 
     auto getActiveQueues() const {
-        return activeHops.size();
+        return activeHops_.size();
     }
 
+    static const double sleep_length_;
+    
 private:
     status_t curStatus;
-    std::set<unsigned int> activeHops;
-    Event::evtime_t bytelen;
+    std::set<unsigned int> activeHops_;
+    const Event::evtime_t bitlen_;
+    const Node& node_;
 
-    virtual Event::evtime_t getTimeUntilListen() const = 0;
+    virtual Event::evtime_t getTimeUntilListen() = 0;
+    void logStatus(Event::evtime_t now) const;
 };
 
 #endif	/* DUTYDRIVER_H */

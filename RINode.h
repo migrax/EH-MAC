@@ -13,7 +13,21 @@
 
 class RINode : public Node {
 public:
-    RINode(const Location& loc) : Node(loc, std::make_unique<RIDriver>(8/Link::getCapacity())) {}    
+
+    RINode(const Location& loc) : Node(loc), driver_(std::make_unique<RIDriver>(*this, 1 / Link::getCapacity())) {
+        Calendar::newEvent(std::make_unique<BeaconEvent> (getDriver().scheduleRx(0), *this));
+    }
+
+private:
+    std::unique_ptr<RIDriver> driver_;
+    
+    virtual DutyDriver& getDriver() {
+        return *driver_;
+    }
+    
+    virtual const DutyDriver& getDriver() const {
+        return *driver_;
+    }
 };
 
 #endif	/* RINODE_H */

@@ -19,40 +19,40 @@ class Node;
 
 class Link {
 public:
-    Link(Node& dst) : dst(dst) {}
+    Link(Node& dst) : dst_(dst) {}
     
     auto queuePacket(const Packet& p) {
-        packetQueue.push(p);
+        packet_queue_.push(p);
         
-        return packetQueue.size();
+        return packet_queue_.size();
     }
     
     auto getQueueSize() const {
-        return packetQueue.size();
+        return packet_queue_.size();
     }
     
     const Packet& getNextPacket() const {
-        assert(packetQueue.empty() == false);
+        assert(packet_queue_.empty() == false);
         
-        return packetQueue.front();
+        return packet_queue_.front();
     }
     
     auto removePacket() {
-        assert(packetQueue.empty() == false);
+        assert(packet_queue_.empty() == false);
         
-        packetQueue.pop();
+        packet_queue_.pop();
         
         return getQueueSize();
     }
     
-    static auto getCapacity() {
-        return static_cast<double> (capacity);
+    static double getCapacity() {
+        return capacity_;
     }        
     
 private:
-    static const unsigned int capacity; // 250 kbit/s is the current max. capacity of 802.15.4 physical layers.
-    Node& dst;
-    std::queue<Packet> packetQueue;
+    static const unsigned int capacity_; // 250 kbit/s is the current max. capacity of 802.15.4 physical layers.
+    Node& dst_;
+    std::queue<Packet> packet_queue_;
 };
 
 #endif	/* LINK_H */

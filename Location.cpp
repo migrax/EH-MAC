@@ -10,7 +10,7 @@
 using namespace std;
 
 ostream& operator<<(ostream& os, const Location& loc) {
-    os << '(' << loc.getLatitude() << ", " << loc.getLongitude() << ')';
+    os << '(' << loc.getLongitude() << ", " << loc.getLatitude() << ')';
     
     return os;
 }

@@ -22,34 +22,34 @@
 
 class Grid {
 public:
-    Grid(double transmissionRange);
+    Grid(Location::value_type transmission_range);
 
     void addNode(std::shared_ptr<Node>);
     
-    Node& getNodeById(Node::nodeid_t nodeId) const {
-        assert(nodesById.find(nodeId) != nodesById.end());
+    Node& getNodeById(Node::nodeid_t node_id) const {
+        assert(nodes_by_id_.find(node_id) != nodes_by_id_.end());
         
-        return nodesById.find(nodeId)->second;        
+        return nodes_by_id_.find(node_id)->second;        
     }
     
-    auto getNodeLocation(Node::nodeid_t nodeId) const {                        
-        Node& node = getNodeById(nodeId);
+    auto getNodeLocation(Node::nodeid_t node_id) const {                        
+        Node& node = getNodeById(node_id);
         auto res = node.getLocation();
         
         return res;
     }
         
     auto countDeployedNodes() const {
-        return nodesById.size();
+        return nodes_by_id_.size();
     }
 
 #ifndef NDEBUG
     friend std::ostream& operator<<(std::ostream&, const Grid&);
 #endif
 private:
-    const double txRange, sqTxRange;
-    std::map<double, std::shared_ptr<Node > > nodesByDistance;
-    std::map<Node::nodeid_t, Node&> nodesById;
+    const Location::value_type tx_range_, sq_tx_range_;
+    std::map<Location::value_type, std::shared_ptr<Node > > nodes_by_distance_;
+    std::map<Node::nodeid_t, Node&> nodes_by_id_;
 };
 
 #endif	/* GRID_H */

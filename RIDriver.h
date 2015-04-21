@@ -18,22 +18,21 @@
  
  */
 
-
-
 class RIDriver : virtual public DutyDriver {
-private:
-    static const double sleepLength;
-
-    virtual Event::evtime_t getTimeUntilListen() const;
+private:    
+    virtual Event::evtime_t getTimeUntilListen();
     Event::evtime_t scheduleTxSlowPath(Event::evtime_t now, int backoff) const;
-    
+
 public:
 
-    RIDriver(Event::evtime_t bytelen) : DutyDriver(bytelen) {
+    RIDriver(const Node& node, Event::evtime_t bitlen) : DutyDriver(node, bitlen) {
     };
 
-    virtual void newData(unsigned int nextHop) {
-        DutyDriver::newData(nextHop);
+    virtual void newData(unsigned int next_hop, Event::evtime_t now) {
+        DutyDriver::newData(next_hop, now);
+
+        if (getStatus() == status_t::SLEEPING)
+            setIdlestMode(now);
     }
 
     virtual Event::evtime_t scheduleTx(Event::evtime_t now, int backoff) const {
@@ -43,15 +42,15 @@ public:
         return scheduleTxSlowPath(now, backoff);
     }
 
-    virtual Event::evtime_t scheduleRx(Event::evtime_t now) const {
+    virtual Event::evtime_t scheduleRx(Event::evtime_t now) {
         return now + getTimeUntilListen();
     }
 
-    virtual void setIdlestMode() {
+    virtual void setIdlestMode(Event::evtime_t now) {
         if (getActiveQueues()) {
-            setStatus(status_t::LISTENING);
+            setStatus(status_t::LISTENING, now);
         } else
-            setStatus(status_t::SLEEPING);
+            setStatus(status_t::SLEEPING, now);
     }
 };
 
