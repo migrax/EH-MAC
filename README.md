@@ -29,7 +29,7 @@ and R, P and E correspond to the three implemented MAC algorithms.
 Output
 ------
 
-The simulator outputs a line for every important event. The output should be self-explanatory.
+The simulator outputs a line for every important event. The output should be self-explanatory. There is also a script in the scripts folder that provides a summary of the main metrics.
 
 Legal
 -----
