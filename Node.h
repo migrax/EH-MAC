@@ -298,7 +298,9 @@ protected:
         }
 
         // Wait for 5 bytes after the end of the backoff period.
+#ifndef NDEBUG
         std::cerr << "Node: " << getId() << " Backoff: " << backoff << std::endl;
+#endif
         return std::make_unique<BeaconEvent>((8 * 5 + backoff * 8 * Packet::getMaxPacketSize()) / Link::getCapacity() + now, *this, BeaconEvent::beacon_kind_t::BEACON_END);
     }
 
