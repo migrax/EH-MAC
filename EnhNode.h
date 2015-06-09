@@ -63,6 +63,15 @@ public:
         auto rate_it = neighbour_beacon_rates_.find(neigh_id);
         return rate_it != neighbour_beacon_rates_.end() ? rate_it->second : 1;
     }
+
+    virtual EnhDriver& getDriver() {
+        return *driver_;
+    }
+
+    virtual const EnhDriver& getDriver() const {
+        return *driver_;
+    }
+
 private:
     int n_collisions_, n_receptions_;
     Event::evtime_t prev_beacon_;
@@ -108,14 +117,6 @@ protected:
 
     virtual std::unique_ptr<DataEvent> getBeacon(Node& orig, Event::evtime_t now, int backoff) {
         return getBeacon(static_cast<EnhNode&> (orig), now, backoff);
-    }
-
-    virtual EnhDriver& getDriver() {
-        return *driver_;
-    }
-
-    virtual const EnhDriver& getDriver() const {
-        return *driver_;
     }
 
 private:

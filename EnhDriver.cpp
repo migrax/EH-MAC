@@ -24,7 +24,7 @@ const EnhNode& EnhDriver::getEnhNode() const {
     return static_cast<const EnhNode&> (getNode());
 }
 
-EnhDriver::EnhDriver(const EnhNode& node, Event::evtime_t bitlen, float max_beacon_rate) : PWDriver(node, bitlen), max_beacon_rate_(max_beacon_rate), beacon_rate_(1) {  
+EnhDriver::EnhDriver(const EnhNode& node, Event::evtime_t bitlen, float max_beacon_rate) : PWDriver(node, bitlen), max_beacon_rate_(max_beacon_rate), beacon_rate_(1), detune_factor_(1.) {  
 }
 
 Event::evtime_t EnhDriver::getExpectedExactBeaconTime(Node::nodeid_t dst, Event::evtime_t now) {     

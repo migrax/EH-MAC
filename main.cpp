@@ -31,7 +31,7 @@ using namespace std;
 namespace {
 
     void usage(const string& progname) {
-        cerr << progname << ": [-s seed] [-l side] [-m max_time] [-d node density] [-r per node rate] [-a R|P|E]" << endl;
+        cerr << progname << ": [-s seed] [-l side] [-m max_time] [-d node density] [-r per node rate] [-a R|P|E] [-t percentage]" << endl;
     }
 }
 
@@ -44,13 +44,14 @@ int main(int argc, char** argv) {
     auto density = 10.;
     auto rate = 1 / 10.;
     auto max_time = 1000;
+    auto detune = 1.;
     int opt;
 
     enum nodetype {
         RIMAC, PWMAC, ENHMAC
     } node = RIMAC;
 
-    while ((opt = getopt(argc, argv, "s:l:m:d:r:a:")) != -1) {
+    while ((opt = getopt(argc, argv, "s:l:m:d:r:a:t:")) != -1) {
         switch (opt) {
             case 's': seed = atoi(optarg);
                 break;
@@ -70,6 +71,8 @@ int main(int argc, char** argv) {
                     case 'E': node = ENHMAC;
                         break;
                 };
+                break;
+            case 't': detune = atof(optarg);
                 break;
             default: usage(argv[0]);
                 return 1;
@@ -95,7 +98,9 @@ int main(int argc, char** argv) {
                 break;
             case PWMAC: grid.addNode(make_shared<PWNode>(p));
                 break;
-            case ENHMAC: grid.addNode(make_shared<EnhNode>(p));
+            case ENHMAC: auto node = make_shared<EnhNode>(p);
+                grid.addNode(node);
+                node->getDriver().detune(detune);
                 break;
         }
     }

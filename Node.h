@@ -191,6 +191,9 @@ public:
         getDriver().newData(next_hop->getId(), now);
     }
 
+    virtual DutyDriver& getDriver() = 0;
+    virtual const DutyDriver& getDriver() const = 0;
+
     friend std::ostream& operator<<(std::ostream&, const Node&);
 
 private:
@@ -251,9 +254,6 @@ private:
 
 protected:
     Node(const Location&);
-
-    virtual DutyDriver& getDriver() = 0;
-    virtual const DutyDriver& getDriver() const = 0;
 
     virtual std::unique_ptr<DataEvent> getBeacon(Node& orig, Event::evtime_t now, int backoff) {
         switch (getDriver().getStatus()) {

@@ -29,6 +29,7 @@ class EnhNode;
 class EnhDriver : public PWDriver {
     float max_beacon_rate_; // Max_rate in beacons/s
     float beacon_rate_;
+    float detune_factor_;
 
     std::queue<Event::evtime_t> next_beacons;
 
@@ -52,7 +53,7 @@ class EnhDriver : public PWDriver {
         const auto eb = 10e-3; // Beacon listening time
 
         auto optimum_rate = ((2 * eb + 2 * epkt - et - M_E * et) * data_rate) / (eb + epkt + et);
-        return optimum_rate;
+        return detune_factor_*optimum_rate;
     }
 
 public:
@@ -97,6 +98,12 @@ public:
     }
 
     virtual Event::evtime_t getExpectedExactBeaconTime(Node::nodeid_t dst, Event::evtime_t now);
+    
+    auto detune(float percentage) {
+        assert(percentage >= -100);
+        
+        return detune_factor_ = 1 + percentage/100.;
+    }
 
 };
 
