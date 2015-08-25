@@ -7,7 +7,7 @@ Overview
 --------
 
 This is the simulated for the Enhanced Predictive MAC Algorithm described in the Paper ["A Self-Tuning Receiver Initiated MAC protocol for
-Wireless Sensor Networks"], currently being reviewed for publication.
+Wireless Sensor Networks"](http://dx.doi.org/10.1109/LWC.2015.2472398).
 
 Usage
 -----
