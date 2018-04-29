@@ -1,0 +1,8 @@
+title: Enhpw-mac
+description: A simulator for the Enhanced Predictive Wakeup MAC Algorithm
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-minimal
+
+gems:
+  - jekyll-mentions
